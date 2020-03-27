@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+# TODO - Criar um método que controle os log's
+
+# Variáveis
+PASTA_BSPWM_CONFIG="$HOME"/.config/bspwm
+# dot file
+ARQUIVO_ID_WINDOWS=.bspsn_ids.bspsn
+
+
+# Métodos para pegar as informações de id's do arquivo
+get_id_file(){
+	echo "$1"
+}
+
+get_id_desktop_file(){
+	ID_DESKTOP_FILE=$(get_id_file "$1")
+}
+
+get_id_window_file(){
+	ID_WINS_FILE+=("$(get_id_file "$1")")
+}
+
+# Cria arquivo que contém os id's das leafs
+create_array_file(){
+	printf '%s\n' "get_id_desktop_file $ID_DESKTOP" > "$PASTA_BSPWM_CONFIG"/"$ARQUIVO_ID_WINDOWS" 
+	for id in ${ID_WINS[@]}
+	do
+		printf '%s\n' "get_id_window_file $id" >> "$PASTA_BSPWM_CONFIG"/"$ARQUIVO_ID_WINDOWS"
+	done
+}
+
+# Pega o DESKTOP em foco
+get_desktop(){
+	ID_DESKTOP=$(bspc query -D -d focused)
+}
+
+# Pega somente as leafs do DESKTOP em foco
+get_windows(){
+	unset ID_WINS
+	ID_WINS=()
+	for id in $(bspc query -N -d focused -n .leaf)
+	do
+		ID_WINS+=("$id")
+	done
+}
+
+# Retornar índice do node no array
+get_window_indice(){
+	local indice_id=
+	local num=0
+	local id_focused=$(bspc query -N -d focused -n focused)
+	# LOG
+	#echo "get_window_indice[Node Focused]: $id_focused" >> "$PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+	for id in ${ID_WINS[@]}
+	do
+		# LOG
+		#echo "get_window_indice[Node Id (inner for loop)]: $id" >> "$PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+		[[ $id == $id_focused ]] && indice_id="$num" && break #&& echo "get_window_indice[Indice report]: $indice_id" >> "PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+		((num++))
+	done
+	echo "$indice_id"
+	
+}
+
+verify_limit(){
+	local max_indice=$(( ${#ID_WINS[@]} - 1 ))
+	# LOG
+	#echo "verify_limit[Max índice do array]: $max_indice" >> "$PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+	if (( $1 > $max_indice ))
+	then
+		echo "0"
+	elif (( $1 < 0 ))
+	then
+		echo "$max_indice"
+	elif (( $1 >= 0 )) && (( $1 <= $max_indice ))
+	then
+		echo "$1"
+	fi
+}
+
+get_info_from_file(){
+	ID_DESKTOP_FILE=
+	ID_WINS_FILE=()
+	# Lê as informações do arquivo, se ele existir
+	[[ -e $PASTA_BSPWM_CONFIG/$ARQUIVO_ID_WINDOWS ]] &&
+	while read ids_file
+	do
+		$ids_file
+	done < "$PASTA_BSPWM_CONFIG"/"$ARQUIVO_ID_WINDOWS"
+}
+
+choosing_info(){
+	# Verificar se mudou de DESKTOP. Caso não tenha mudado, usar os id's do arquivo
+	# Verificar se ID_WINS é igual a ID_WINS_FILE
+	if [[ $ID_DESKTOP_FILE != $(bspc query -D focused -d focused) ]] || [[ ${#ID_WINS[@]} != ${#ID_WINS_FILE[@]} ]]
+	then
+		create_array_file
+	else
+		ID_DESKTOP="$ID_DESKTOP_FILE"
+		ID_WINS=("${ID_WINS_FILE[@]}")
+	fi
+}
+
+init_modules(){
+	get_desktop
+	get_windows
+	get_info_from_file
+	choosing_info
+}
+
+# A cada novo chamada do método, o array é resetado, criando uma inconsistência
+# Método recebe valores {prev,next} e foca a leaf respectiva
+main(){
+	# Como fazer o array ser persistente? Criar um arquivo que contenha essas informações
+	init_modules
+
+	local indice=
+	
+	case "$1" in
+		next)
+			indice=$(verify_limit "$(( $(get_window_indice) + 1 ))")
+			# LOG
+			#echo "main[Índice do array]: $(bspc query -N -n) -> $indice" >> "$PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+			;;
+		prev)
+			indice=$(verify_limit "$(( $(get_window_indice) - 1 ))")
+			# LOG
+			#echo "main[Índice do array]: $(bspc query -N -n) -> $indice" >> "$PASTA_BSPWM_CONFIG"/.functions_bspsn.log
+			;;
+		*)
+			notify-send -t 3000 "BSPSN" "Comando não reconhecido!"
+			;;
+	esac
+
+	bspc node -f "${ID_WINS[$indice]}"
+}
+
+main "$@"

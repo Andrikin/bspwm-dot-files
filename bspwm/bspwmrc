@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# TODO - 
+
+# Funções
+ini_once(){
+	[[ $(pidof -sx "$1") ]] || $1 &
+}
+
+# Inicialização
+ini_once sxhkd
+ini_once ~/.config/lemonbar/lemon_conf
+ini_once battery_alarm 
+ini_once udiskie
+ini_once ~/.config/bspwm/bspl
+
+xdo above -t $(xdo id -n root) $(xdo id -n lemonbar) &
+brave-browser-stable &
+numlockx on &
+xinput set-prop 12 280 1 &
+xinput set-prop 12 288 1 &
+xinput set-prop 12 300 0 &
+xinput set-prop 12 295 1.0 &
+feh --bg-scale "/home/andre/Imagens/Minas Tirith.jpg" &
+
+# Configurações BSPC
+bspc monitor -d I II III IV V
+
+bspc config border_width        1
+bspc config window_gap          0
+bspc config focused_border_color "#ffffff"
+# Interações com Mouse
+bspc config pointer_modifier mod1
+bspc config pointer_action1 move
+
+bspc config split_ratio          0.50
+bspc config borderless_monocle   true
+bspc config gapless_monocle      true
+#bspc config single_monocle		 true
+
+bspc rule -a Brave desktop='^1'
+bspc rule -a Transmission-gtk desktop='^5'
