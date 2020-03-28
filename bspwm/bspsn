@@ -4,8 +4,7 @@
 
 # Variáveis
 PASTA_BSPWM_CONFIG="$HOME"/.config/bspwm
-# dot file
-ARQUIVO_ID_WINDOWS=.bspsn_ids.bspsn
+ARQUIVO_ID_WINDOWS=.bspsn_ids.bspsn # dot file
 
 
 # Métodos para pegar as informações de id's do arquivo
