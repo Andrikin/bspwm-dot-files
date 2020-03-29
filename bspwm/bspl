@@ -3,59 +3,26 @@
 # TODO - 
 # Este script estará sempre rodando em background
 
-# Copia array ID_WINS_TEMP para M_WINS_RSD
-#copy_array_temp(){
-#	unset M_WINS_RSD
-#	M_WINS_RSD=()
-#	for id in ${!TEMP_ID_WINS[@]}
-#	do
-#		M_WINS_RSD+=(["$id"]="${TEMP_ID_WINS[$id]}")
-#	done
-#}
-#
-# Obtém leaf's do DEKSTOP
-get_windows_desktop(){
-	unset ID_WINS
-	ID_WINS=()
-	local TEMP_ID_WINS=()
+# "Printa" número de NODE's no DESKTOP em foco
+get_leaf_number(){
+	local num_windows=0
 	for id in $(bspc query -N -d "$1" -n .leaf)
 	do
-		TEMP_ID_WINS+=("$id")
+		((num_windows++))
 	done
-	ID_WINS=("${TEMP_ID_WINS[@]}")
+
+	echo "$num_windows"
 }
-#
-## Obtém leaf's do MONITOR
-#get_windows_monitor(){
-#	unset TEMP_ID_WINS
-#	TEMP_ID_WINS=()
-#	for id in $(bspc query -N -m focused -n .leaf)
-#	do
-#		TEMP_ID_WINS+=(["$id"]=1)
-#	done
-#	copy_array_temp
-#	unset TEMP_ID_WINS
-#}
 
 set_window_whxy(){
-	# Mudar comando para utilizar  - xdo resize -w WIDTH - h HEIGTH
-	# Centralizar janela no monitor
-	xdo resize -w 1092 -h 614 
-	xdo move -x 137 -y 77
+	[[ ${WINDOW_RESIZED[$1]} != 0 ]] && 
+		{
+			# Redimensiona o NODE
+			xdo resize -w 1092 -h 614 # Width, heigth 
+			xdo move -x 137 -y 77 # Centralizar janela no monitor [x, y]
+			WINDOW_RESIZED["$1"]=0
+		}
 }
-
-# Seta valor do elemento no array que contém nodes com valor resized
-# $1=NODE; $2=DESKTOP; $3=BOOLEAN[true, false]
-#set_window_resized(){
-#	if [[ $3 != false ]]
-#	then
-#		#set_window_whxy "$1" "$2"
-#		set_window_whxy
-#		M_WINS_RSD["$1"]=0
-#	else
-#		M_WINS_RSD["$1"]=1
-#	fi
-#}
 
 # $1=NODE; $2=DESKTOP
 window_focus_floating(){
@@ -64,69 +31,30 @@ window_focus_floating(){
 	[[ $is_window_tiled != floating ]] &&
 		{
 			# Se existir somente uma janela, não mudar STATE
-			if (( ${#ID_WINS[@]} > 1 )) 
+			if (( $(get_leaf_number "$2") > 1 )) 
 			then
 				bspc node any.floating -t tiled 
 				bspc node "$1" -t floating 
-				#[[ ${M_WINS_RSD[$1]} == 1 ]] && set_window_resized "$1" "$2"
-				set_window_whxy
+				set_window_whxy "$1"
 			else
 				bspc node "$1" -t tiled 
 			fi
 		}
 }
 
-# Inicializar todos os nodes do monitor com resized 1
-#init_window_resized(){
-#	get_windows_monitor
-#}
-
-#remove_window(){
-#	unset TEMP_ID_WINS
-#	TEMP_ID_WINS=()
-#	for id in $(bspc query -N -m focused -n .leaf)
-#	do
-#		[[ ${M_WINS_RSD[$id]+_} ]] && TEMP_ID_WINS+=(["$id"]="${M_WINS_RSD[$id]}")
-#	done
-#	copy_array_temp
-#}
-
 # Funções com mesmo nome do evento
 
 # $1=MONITOR; $2=DESKTOP; $3=NODE
 node_focus(){
-	# Atualiza array com os nodes do desktop
-	get_windows_desktop "$2"
-
-	# Transformar NODE em floating se ele estiver com valor resized=1 (falso)
+	# Ao focar um NODE, tranformá-lo em floating
 	window_focus_floating "$3" "$2"
-
-	# Remove nodes que não existem do array M_WINS_RSD
-	#remove_window
 }
 
-# $1=MONITOR; $2=DESKTOP; $3=NODE; $4=STATE; $5=TOGGLE STATE
-#node_state(){
-#	return 0
-#}
-
-# $1=NODE; $2=STACK; $3=NODE_STACK
-#node_stack(){
-#	return 0
-#}
-
-# $1=MONITOR; $2=DESKTOP; $3=LEAF/NODE_STACK; $4=NODE
-#node_add(){
-#	# Amazana o node no array com valor "boolean"=1 {true=0, false=1}
-#	M_WINS_RSD+=(["$4"]=1)
-#}
-
 # $1=MONITOR; $2=DESKTOP; $3=NODE_REMOVED
-#node_remove(){
-#	# Nem todos os eventos de remove são reportados, por isto este método está comprometido
-#	#remove_window
-#	return 0
-#}
+node_remove(){
+	# Seta para 1 [false] quando NODE é removido
+	WINDOW_RESIZED["$3"]=1
+}
 
 # $1=MONITOR; $2=DESKTOP
 desktop_focus(){
@@ -135,16 +63,12 @@ desktop_focus(){
 }
 
 main(){
-	# Inicializar todos os Nodes
-	#init_window_resized
-
 	# Utilizar os node_event's para interpretar os comandos
 	while read EVENTO
 	do
-		# Criar métodos com o mesmo nome dos eventos, sendo os parâmetros o restante da string
-		# Algo como:
 		$EVENTO
-	done < <(bspc subscribe node_focus node_state node_stack node_add node_remove desktop_focus)
+	#done < <(bspc subscribe node_focus node_state node_stack node_add node_remove desktop_focus)
+	done < <(bspc subscribe node_focus desktop_focus node_remove)
 }
 
 main
