@@ -11,7 +11,7 @@ alt + comma
 
 # program launcher
 alt + Return
-	dmenu_run
+	dmenu_command
 
 # make sxhkd reload its configuration files:
 alt + Escape
@@ -27,7 +27,10 @@ alt + BackSpace
 
 # close and kill
 alt + q
-	bspc node -{c,k}
+	bspc node -c
+	#bspc node -{c,k}
+	#xdo kill
+	#killw $(pfw) - Este comando não encerra o processo
 
 # alternate between the tiled and monocle layout
 alt + w
@@ -46,8 +49,9 @@ alt + w
 #
 
 # set the window state
-alt + {t,shift + t,s,f}
-	bspc node -t {tiled,pseudo_tiled,floating,fullscreen}
+alt + f
+	bspc node -t ~fullscreen
+	# ~/.config/bspwm/bspfs
 
 # set the node flags
 #alt + ctrl + {m,x,y,z}
@@ -60,8 +64,10 @@ alt + {t,shift + t,s,f}
 # focus the node in the given direction, "_" representa caracter nulo
 #alt + {_,shift + }{h,j,k,l}
 #	bspc node -{f,s} {prev,south,north,next}.local
-alt + {_,shift + }{h,j,k,l}
-	bspc node -{f,s} {west,south,north,east}
+#alt + {_,shift + }{h,j,k,l}
+#	bspc node -{f,s} {west,south,north,east}
+alt + {h,l}
+	~/.config/bspwm/bspsn {prev,next}
 
 # focus the node for the given path jump
 #alt + {p,b,comma,period}
@@ -136,13 +142,17 @@ alt + {Left,Right}
 # Programa/Scripts
 #
 alt + m
-	dmenu_flac
+	dmenu_player
 
 # Aumentar e diminuir volume
 alt + Up
-	volumeinc
+	polybar_volume up
+	#pactl set-sink-volume 0 +1% && polybar-msg hook volume 1
+	#pactl set-sink-volume 0 +1% && ~/.config/lemonbar/run_lemonbar &
 alt + Down
-	volumedec
+	polybar_volume down
+	#pactl set-sink-volume 0 -1% && polybar-msg hook volume 1
+	#pactl set-sink-volume 0 -1% && ~/.config/lemonbar/run_lemonbar &
 
 # Buscador de wifi
 alt + i
@@ -155,3 +165,11 @@ alt + i
 # Travar tela
 alt + b
 	slock 
+
+# Reload polybar
+alt + r
+	killall -q polybar && polybar andrikin_bar
+
+# Screenshot
+alt + s
+	screenshot
