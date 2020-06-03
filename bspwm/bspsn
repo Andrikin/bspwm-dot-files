@@ -9,7 +9,7 @@ get_id_file(){
 }
 
 get_id_desktop_file(){
-	ID_DESKTOP_FILE=$(get_id_file "$1")
+	ID_DESKTOP_FILE="$(get_id_file "$1")"
 }
 
 get_id_window_file(){
@@ -41,16 +41,14 @@ get_windows(){
 
 # Retornar índice do node no array
 get_window_indice(){
-	local indice_id=
-	local num=0
+	local n_indice=0
 	local is_id_focused=$(bspc query -N -n)
 	for id in ${ID_WINS[@]}
 	do
-		[[ $is_id_focused == $id ]] && indice_id="$num" && break
-		((num++))
+		[[ $is_id_focused == $id ]] && break
+		((n_indice++))
 	done
-	echo "$indice_id"
-	
+	echo "$n_indice"
 }
 
 verify_limit(){
@@ -61,8 +59,7 @@ verify_limit(){
 	elif (( $1 < 0 ))
 	then
 		echo "$max_indice"
-	elif (( $1 >= 0 )) && (( $1 <= $max_indice ))
-	then
+	else
 		echo "$1"
 	fi
 }
@@ -81,13 +78,20 @@ get_info_from_file(){
 choosing_info(){
 	# Verificar se mudou de DESKTOP. Caso não tenha mudado, usar os id's do arquivo
 	# Verificar se ID_WINS é igual a ID_WINS_FILE
-	if [[ $ID_DESKTOP_FILE == $ID_DESKTOP ]] && [[ ${#ID_WINS_FILE[@]} == ${#ID_WINS[@]} ]]
-	then
+	[[ $ID_DESKTOP_FILE == $ID_DESKTOP ]] && 
 		ID_DESKTOP="$ID_DESKTOP_FILE"
-		ID_WINS=("${ID_WINS_FILE[@]}")
-	else
-		create_array_file
-	fi
+	[[ ${#ID_WINS_FILE[@]} == ${#ID_WINS[@]} ]] && {
+		for ((i=0;i<${#ID_WINS[@]};i++))
+		do
+			if [[ ${ID_WINS_FILE[$i]} == ${ID_WINS[$i]} ]]
+			then
+				ID_WINS+=("${ID_WINS_FILE[$i]}")
+			else
+				create_array_file
+				break
+			fi
+		done
+	} || create_array_file
 }
 
 init_modules(){
@@ -106,9 +110,17 @@ select_next_window(){
 	case "$1" in
 		next)
 			indice=$(verify_limit "$(( $(get_window_indice) + 1 ))")
+			echo "$indice"
+			echo "$(get_window_indice)"
+			echo "${#ID_WINS[@]}"
+			echo "${ID_WINS[$indice]}"
 			;;
 		prev)
 			indice=$(verify_limit "$(( $(get_window_indice) - 1 ))")
+			echo "$indice"
+			echo "$(get_window_indice)"
+			echo "${#ID_WINS[@]}"
+			echo "${ID_WINS[$indice]}"
 			;;
 		*)
 			notify-send -t 3000 "BSPSN" "Comando não reconhecido!"
