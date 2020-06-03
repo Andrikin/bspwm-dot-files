@@ -2,7 +2,6 @@
 
 # TODO -
 
-
 # Métodos para pegar as informações de id's do arquivo
 get_id_file(){
 	echo "$1"
@@ -14,15 +13,6 @@ get_id_desktop_file(){
 
 get_id_window_file(){
 	ID_WINS_FILE+=("$(get_id_file "$1")")
-}
-
-# Cria arquivo que contém os id's das leafs
-create_array_file(){
-	printf '%s\n' "get_id_desktop_file $ID_DESKTOP" > "$ARQUIVO_ID_WINDOWS" 
-	for id in ${ID_WINS[@]}
-	do
-		printf '%s\n' "get_id_window_file $id" >> "$ARQUIVO_ID_WINDOWS"
-	done
 }
 
 # Pega o DESKTOP em foco
@@ -64,41 +54,9 @@ verify_limit(){
 	fi
 }
 
-get_info_from_file(){
-	ID_DESKTOP_FILE=
-	ID_WINS_FILE=()
-	# Lê as informações do arquivo, se ele existir
-	[[ -e $ARQUIVO_ID_WINDOWS ]] &&
-	while read ids_file
-	do
-		$ids_file
-	done < "$ARQUIVO_ID_WINDOWS"
-}
-
-choosing_info(){
-	# Verificar se mudou de DESKTOP. Caso não tenha mudado, usar os id's do arquivo
-	# Verificar se ID_WINS é igual a ID_WINS_FILE
-	[[ $ID_DESKTOP_FILE == $ID_DESKTOP ]] && 
-		ID_DESKTOP="$ID_DESKTOP_FILE"
-	[[ ${#ID_WINS_FILE[@]} == ${#ID_WINS[@]} ]] && {
-		for ((i=0;i<${#ID_WINS[@]};i++))
-		do
-			if [[ ${ID_WINS_FILE[$i]} == ${ID_WINS[$i]} ]]
-			then
-				ID_WINS+=("${ID_WINS_FILE[$i]}")
-			else
-				create_array_file
-				break
-			fi
-		done
-	} || create_array_file
-}
-
 init_modules(){
 	get_desktop
 	get_windows
-	get_info_from_file
-	choosing_info
 }
 
 select_next_window(){
@@ -124,7 +82,6 @@ select_next_window(){
 
 # Método recebe valores {prev,next} e foca a leaf respectiva
 main(){
-	ARQUIVO_ID_WINDOWS="$HOME"/.config/bspwm/.desktop_ids.bspsn
 	select_next_window "$1"
 }
 
