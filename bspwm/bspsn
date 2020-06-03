@@ -110,17 +110,9 @@ select_next_window(){
 	case "$1" in
 		next)
 			indice=$(verify_limit "$(( $(get_window_indice) + 1 ))")
-			echo "$indice"
-			echo "$(get_window_indice)"
-			echo "${#ID_WINS[@]}"
-			echo "${ID_WINS[$indice]}"
 			;;
 		prev)
 			indice=$(verify_limit "$(( $(get_window_indice) - 1 ))")
-			echo "$indice"
-			echo "$(get_window_indice)"
-			echo "${#ID_WINS[@]}"
-			echo "${ID_WINS[$indice]}"
 			;;
 		*)
 			notify-send -t 3000 "BSPSN" "Comando não reconhecido!"
