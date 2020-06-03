@@ -1,26 +1,42 @@
 #!/usr/bin/env bash
 
-# TODO - 
-# Este script estará sempre rodando em background
+# TODO - Ficar atento aos comandos nos loop's "for", pois eles não estão "quotados"
+# Este script estará sempre rodando em background. Utiliza script para atualizar statusbar [lemonbar]
+
+init_variables(){
+	# Sempre usar esta forma de declaração para arrays associativos [key]=value
+	declare -A WINDOW_RESIZED
+	get_monitor_xy
+	RATIO=9 # Calcula o tamanha da janela pela porcentagem do monitor
+	WIDTH=$(( (MONITOR_XY[0]*RATIO)/10 ))
+	HEIGTH=$(( (MONITOR_XY[1]*RATIO)/10 ))
+	X=$(( (MONITOR_XY[0]-WIDTH)/2 ))
+	Y=$(( (MONITOR_XY[1]-HEIGTH)/2 ))
+}
+
+get_monitor_xy(){
+	local IFS='x'
+	MONITOR_XY=($(xdpyinfo | sed -n "/dimensions/p" | sed "s/\ /-/g" | cut -d'-' -f7))
+}
+
 
 # "Printa" número de NODE's no DESKTOP em foco
-get_leaf_number(){
+get_leafs_number(){
 	local num_windows=0
 	for id in $(bspc query -N -d "$1" -n .leaf)
 	do
 		((num_windows++))
 	done
-
 	echo "$num_windows"
 }
 
 set_window_whxy(){
-	[[ ${WINDOW_RESIZED[$1]} != 0 ]] && 
-		{
+	[[ -z ${WINDOW_RESIZED[$1]} ]] && WINDOW_RESIZED["$1"]=0
+	(( ! ${WINDOW_RESIZED[$1]} )) && {
 			# Redimensiona o NODE
-			xdo resize -w 1092 -h 614 # Width, heigth 
-			xdo move -x 137 -y 77 # Centralizar janela no monitor [x, y]
-			WINDOW_RESIZED["$1"]=0
+			xdo resize -w "$WIDTH" -h "$HEIGTH"
+			xdo move -x "$X" -y "$Y" # Centralizar janela no monitor [x, y]
+			WINDOW_RESIZED["$1"]=1
 		}
 }
 
@@ -28,10 +44,9 @@ set_window_whxy(){
 window_focus_floating(){
 	local is_window_tiled=$(bspc query -T -d "$2" -n "$1" | jq -M '.client.state' | sed "s/\"//g")
 	# Se STATE já for floating, não dar resized
-	[[ $is_window_tiled != floating ]] &&
-		{
+	[[ $is_window_tiled != floating ]] && {
 			# Se existir somente uma janela, não mudar STATE
-			if (( $(get_leaf_number "$2") > 1 )) 
+			if (( $(get_leafs_number "$2") > 1 )) 
 			then
 				bspc node any.floating -t tiled 
 				bspc node "$1" -t floating 
@@ -52,23 +67,19 @@ node_focus(){
 
 # $1=MONITOR; $2=DESKTOP; $3=NODE_REMOVED
 node_remove(){
-	# Seta para 1 [false] quando NODE é removido
-	WINDOW_RESIZED["$3"]=1
-}
-
-# $1=MONITOR; $2=DESKTOP
-desktop_focus(){
-	# Atualizar statusbar (lemonbar)
-	pkill -f "sleep 1m"
+	# BUG: Nem todos os NODES são removidos... Deve-se usar comando correto para remover os nodes [ bspc node -c ]
+	unset WINDOW_RESIZED["$3"]
 }
 
 main(){
+	init_variables
 	# Utilizar os node_event's para interpretar os comandos
 	while read EVENTO
 	do
+		# Como eu preciso que os espaços sejam interpretados como separador de argumentos, eu não uso aspas
 		$EVENTO
 	#done < <(bspc subscribe node_focus node_state node_stack node_add node_remove desktop_focus)
-	done < <(bspc subscribe node_focus desktop_focus node_remove)
+	done < <(bspc subscribe node_focus node_remove)
 }
 
 main
