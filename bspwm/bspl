@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 # TODO - Ficar atento aos comandos nos loop's "for", pois eles não estão "quotados"
-# Este script estará sempre rodando em background. Utiliza script para atualizar statusbar [lemonbar]
+# REMOVIDO FEATURE SWALLOW
 
 init_variables(){
 	# Sempre usar esta forma de declaração para arrays associativos [key]=value
 	declare -A WINDOW_RESIZED
+	# declare -A SWALLOW_IDS
 	get_monitor_xy
 	RATIO=9 # Calcula o tamanha da janela pela porcentagem do monitor
 	WIDTH=$(( (MONITOR_XY[0]*RATIO)/10 ))
@@ -57,6 +58,43 @@ window_focus_floating(){
 		}
 }
 
+# # $1=ID_WIN
+# get_class_win(){
+# 	local id_win="$1"
+# 	if [[ -z $id_win ]]
+# 	then
+# 		echo ""
+# 	else
+# 		echo "$(xprop -id "$id_win" | sed -n '/WM_CLASS\|WM_COMMAND/s/.*"\(.*\)".*/\1/p')"
+# 	fi
+# }
+
+# # $1=NODE_REMOVED
+# spit(){
+# 	bspc node "$1" --flag hidden=off
+# 	bspc node "$1" -f
+# }
+
+# # $1=DESKTOP; $2=NODE
+# swallow(){
+# 	local desktop="$1"
+# 	local node="$2"
+# 	local last_node=$(bspc query -N -n last)
+# 	local black_list=("st-256color")
+# 	for program in "${black_list[@]}"
+# 	do
+# 		if [[ $program == $(get_class_win "$node") ]]
+# 		then
+# 			return
+# 		fi
+# 	done
+# 	if [[ $(bspc query -D -n last) == $desktop ]]
+# 	then
+# 		SWALLOW_IDS["$node"]="spit $last_node"
+# 		bspc node "$last_node" --flag hidden=on
+# 	fi
+# }
+
 # Funções com mesmo nome do evento
 
 # $1=MONITOR; $2=DESKTOP; $3=NODE
@@ -69,7 +107,14 @@ node_focus(){
 node_remove(){
 	# BUG: Nem todos os NODES são removidos... Deve-se usar comando correto para remover os nodes [ bspc node -c ]
 	unset WINDOW_RESIZED["$3"]
+	# ${SWALLOW_IDS["$3"]}
+	# unset SWALLOW_IDS["$3"]
 }
+
+# # $1=MONITOR; $2=DESKTOP; $3=IP; $4=NODE
+# node_add(){
+# 	swallow "$2" "$4"
+# }
 
 main(){
 	init_variables
